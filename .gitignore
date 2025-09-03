@@ -1,0 +1,9 @@
+# Ignorar o arquivo .env (token secreto)
+.env
+
+# Ignorar pastas de cache
+__pycache__/
+*.pyc
+
+# Ignorar arquivos do VSCode
+.vscode/
