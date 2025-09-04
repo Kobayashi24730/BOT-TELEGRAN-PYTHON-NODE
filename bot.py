@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Carregar token
 # ------------------------------
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAN_BOT_TOKEN")
 
 if not TOKEN:
     logger.error("❌ BOT_TOKEN não encontrado! Configure nas variáveis do Render.")
