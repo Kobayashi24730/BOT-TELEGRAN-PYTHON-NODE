@@ -4,51 +4,39 @@ import logging
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler
 
-# ------------------------------
-# LOGGING (mostra tudo nos logs do Render)
-# ------------------------------
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-    stream=sys.stdout
-)
-
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
-# ------------------------------
-# Carregar token
-# ------------------------------
 load_dotenv()
 TOKEN = os.getenv("TELEGRAN_BOT_TOKEN")
+PORT = int(os.getenv("PORT", 8443))  # Render define PORT automaticamente
 
-if not TOKEN:
-    logger.error("❌ BOT_TOKEN não encontrado! Configure nas variáveis do Render.")
-    sys.exit(1)  # força erro e fecha o app
-
-# ------------------------------
-# Comandos básicos
-# ------------------------------
 async def start(update, context):
-    await update.message.reply_text("🤖 Bot online! Digite /ping")
+    await update.message.reply_text("🤖 Bot online via Webhook!")
 
 async def ping(update, context):
     await update.message.reply_text("🏓 Pong!")
 
-# ------------------------------
-# Main
-# ------------------------------
 def main():
-    try:
-        app = Application.builder().token(TOKEN).build()
-
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("ping", ping))
-
-        logger.info("🚀 Bot iniciado com sucesso!")
-        app.run_polling()
-    except Exception as e:
-        logger.exception("💥 Erro fatal no bot:")
+    if not TOKEN:
+        logger.error("❌ BOT_TOKEN não encontrado!")
         sys.exit(1)
+
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("ping", ping))
+
+    # URL pública do Render (troque pelo seu domínio Render)
+    render_url = os.getenv("RENDER_EXTERNAL_URL")  # Render injeta essa var
+    webhook_url = f"{render_url}/webhook"
+
+    logger.info(f"🚀 Iniciando webhook em {webhook_url}")
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=webhook_url,
+    )
 
 if __name__ == "__main__":
     main()
