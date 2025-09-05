@@ -1,42 +1,50 @@
 import os
-import sys
 import logging
-from dotenv import load_dotenv
+from flask import Flask, request
+from telegram import Update
 from telegram.ext import Application, CommandHandler
 
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+# --------------------------
+# Configuração de logs
+# --------------------------
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
-TOKEN = os.getenv("TELEGRAN_BOT_TOKEN")
-PORT = int(os.getenv("PORT", 8443))  # Render define PORT automaticamente
+TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("❌ BOT_TOKEN não configurado!")
 
-async def start(update, context):
-    await update.message.reply_text("🤖 Bot online via Webhook!")
+# --------------------------
+# Telegram Bot Application
+# --------------------------
+application = Application.builder().token(TOKEN).build()
 
-async def ping(update, context):
-    await update.message.reply_text("🏓 Pong!")
+# Comando /start
+async def start(update: Update, context):
+    await update.message.reply_text("🤖 Bot ativo com Webhook!")
 
-def main():
-    if not TOKEN:
-        logger.error("❌ BOT_TOKEN não encontrado!")
-        sys.exit(1)
+# Registrar handlers
+application.add_handler(CommandHandler("start", start))
 
-    app = Application.builder().token(TOKEN).build()
+# --------------------------
+# Flask app para Webhook
+# --------------------------
+app = Flask(__name__)
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("ping", ping))
+@app.route("/")
+def home():
+    return "Bot online ✅", 200
 
-    # URL pública do Render (troque pelo seu domínio Render)
-    render_url = os.getenv("RENDER_EXTERNAL_URL")  # Render injeta essa var
-    webhook_url = f"{render_url}/webhook"
-
-    logger.info(f"🚀 Iniciando webhook em {webhook_url}")
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=webhook_url,
-    )
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    try:
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        application.update_queue.put_nowait(update)
+    except Exception as e:
+        logger.error(f"Erro no webhook: {e}")
+        return "erro", 500
+    return "ok", 200
 
 if __name__ == "__main__":
-    main()
+    PORT = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=PORT)
