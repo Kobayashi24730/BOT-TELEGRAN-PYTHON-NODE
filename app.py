@@ -25,6 +25,14 @@ class BookingRequest(BaseModel):
     hour: str
 
 
+@app.get("/hours")
+def get_hours(date: str):
+    hours = availability_db.get(date, [])
+
+    return {
+        "data": date,
+        "Horas": hours
+    }
 # ===============================
 # ENDPOINT 1: CONSULTAR HORÁRIOS
 # ===============================
